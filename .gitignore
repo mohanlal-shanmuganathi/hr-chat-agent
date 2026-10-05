@@ -1,0 +1,31 @@
+# --- Confidential company data: NEVER commit (repo is public) ---
+data/private_policies/*
+!data/private_policies/README.md
+evals/private/*
+!evals/private/README.md
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Model / embedding caches
+.cache/
+models_cache/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,11 @@
+# EXAMPLE ONLY: placeholder values, NOT the company's policy.
+# The real file is transcribed from the current leave policy and lives at
+#   data/private_policies/config/leave_types.yaml   (git-ignored)
+# The seed script uses the private file when it exists, otherwise this example.
+leave_types:
+  - {code: CL, name: Casual Leave, annual: 8, quarterly: 2, carry_forward_max: 0, encashable: false, ref: "Example policy §1"}
+  - {code: SL, name: Sick Leave, annual: 8, quarterly: 2, carry_forward_max: 0, encashable: false, ref: "Example policy §2"}
+  - {code: EL, name: Earned Leave, annual: 16, quarterly: 4, carry_forward_max: 10, cap: 25, encashable: true, ref: "Example policy §3"}
+  - {code: PL, name: Privilege Leave (legacy), ref: "Example policy §4"}
+  - {code: ML, name: Maternity Leave, balance_tracked: false, ref: "Example policy §5"}
+  - {code: PTL, name: Paternity Leave, balance_tracked: false, ref: "Example policy §6"}

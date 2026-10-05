@@ -1,0 +1,7 @@
+# Normalise line endings so Windows checkouts work inside Linux containers
+* text=auto eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.pdf binary
+*.docx binary
+*.png binary

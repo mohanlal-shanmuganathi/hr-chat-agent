@@ -1,0 +1,88 @@
+name: hr-chat-agent
+
+# The app image is built locally (never pulled). Every service that uses it carries the same build
+# definition so any Compose version builds it instead of trying to download it from Docker Hub.
+x-app-image: &app-image
+  image: hr-chat-agent-api
+  pull_policy: build
+  build:
+    context: .
+    secrets:
+      - extra_ca
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: hr_agent
+      POSTGRES_PASSWORD: hr_agent  # local-only credentials
+      POSTGRES_DB: hr_agent
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hr_agent -d hr_agent"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # One-shot schema migration; the API starts only after it succeeds.
+  migrate:
+    <<: *app-image
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://hr_agent:hr_agent@db:5432/hr_agent
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    <<: *app-image
+    env_file:
+      - .env   # create it first: copy .env.example .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://hr_agent:hr_agent@db:5432/hr_agent
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # Confidential docs are mounted read-only at runtime, never baked into the image.
+      - ./data/private_policies:/app/data/private_policies:ro
+      # Embedding model is downloaded once and reused across container rebuilds.
+      - model_cache:/app/.cache
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # Evaluation suite (needs GOOGLE_API_KEY). Mounts the repo so the private policies and private
+  # eval cases are available and reports are written back:  docker compose run --rm evals
+  evals:
+    <<: *app-image
+    profiles: ["evals"]
+    env_file:
+      - .env   # create it first: copy .env.example .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://hr_agent:hr_agent@db:5432/hr_agent
+    working_dir: /app
+    # Local developer tool only: root so it can write reports into the bind-mounted repo on any OS.
+    user: root
+    volumes:
+      - .:/app
+      - model_cache:/app/.cache
+    command: ["python", "-m", "evals.run_evals"]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+  model_cache:
+
+secrets:
+  extra_ca:
+    # Only needed behind a TLS-inspecting proxy; otherwise this points at an empty file.
+    file: ${EXTRA_CA_FILE:-./docker/empty-ca.pem}

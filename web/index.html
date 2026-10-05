@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HR Assistant</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img class="logo" src="/static/logo.png" alt="Ideas2IT">
+      <span class="brand-name">HR Assistant</span>
+    </div>
+    <div class="user" id="user-area" hidden>
+      <span class="who"><span id="user-name"></span><span class="pill" id="user-location"></span></span>
+      <button class="ghost" id="new-chat" type="button" title="Start a new chat">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New chat</span>
+      </button>
+      <button class="ghost" id="logout" type="button" title="Sign out">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg><span>Sign out</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Sign-in -->
+  <main id="login-view" class="login" hidden>
+    <section class="login-card">
+      <div class="login-logo"><img class="logo" src="/static/logo.png" alt=""></div>
+      <h1>HR Assistant</h1>
+      <p class="muted">Ask about company policies, your leave, WFH, staff loans and more.</p>
+      <p class="error" id="login-error" hidden></p>
+      <a class="button primary" id="google-login" href="/auth/google/login" hidden>
+        Continue with Google <span class="muted-on-primary" id="google-domain"></span>
+      </a>
+      <div id="dev-login" hidden>
+        <div class="divider"><span>Demo employees (fictional)</span></div>
+        <ul class="demo-users" id="demo-users"></ul>
+      </div>
+      <p class="muted small" id="no-login" hidden>No sign-in method is configured.</p>
+    </section>
+  </main>
+
+  <!-- Chat -->
+  <main id="chat-view" class="chat" hidden>
+    <div class="scroller" id="scroller">
+      <div class="thread" id="messages" aria-live="polite">
+        <div class="welcome" id="welcome">
+          <div class="welcome-logo"><img class="logo" src="/static/logo.png" alt=""></div>
+          <h2 id="greeting">How can I help?</h2>
+          <p class="muted">Answers come from the current company policies and your own HR records.</p>
+          <div class="chips" id="suggestions">
+            <button type="button" class="chip">How many sick leaves do I get in a year?</button>
+            <button type="button" class="chip">What is my leave balance?</button>
+            <button type="button" class="chip">Can I take casual leave from 16 to 20 Oct?</button>
+            <button type="button" class="chip">When is Diwali this year?</button>
+            <button type="button" class="chip">Am I eligible for a staff loan?</button>
+            <button type="button" class="chip">How many WFH days do I have left this month?</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="composer-wrap">
+      <form class="composer" id="composer" autocomplete="off">
+        <textarea id="input" rows="1" maxlength="2000" placeholder="Ask an HR question…" aria-label="Message"></textarea>
+        <button class="send" id="send" type="submit" title="Send (Enter)" aria-label="Send">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </form>
+      <p class="hint">Answers cite the current policies. Confirm important decisions with HR.</p>
+    </div>
+  </main>
+</body>
+</html>

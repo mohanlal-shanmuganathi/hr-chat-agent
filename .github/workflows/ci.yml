@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  guard-private-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if confidential files are tracked
+        run: |
+          leaked=$(git ls-files data/private_policies evals/private | grep -v '/README.md$' || true)
+          if [ -n "$leaked" ]; then
+            echo "::error::Confidential files are committed:"; echo "$leaked"; exit 1
+          fi
+          if git ls-files | grep -E '(^|/)\.env$'; then echo "::error::.env committed"; exit 1; fi
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: hr_agent
+          POSTGRES_PASSWORD: hr_agent
+          POSTGRES_DB: hr_agent_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U hr_agent -d hr_agent_test" --health-interval 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://hr_agent:hr_agent@localhost:5432/hr_agent_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.17"
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy app evals
+      - run: uv run pytest -q

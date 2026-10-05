@@ -1,0 +1,63 @@
+# EXAMPLE ONLY: fictional placeholder values, deliberately NOT the company's policy numbers.
+# The real rules live at data/private_policies/config/rules.yaml (git-ignored) and are used
+# whenever that file exists.
+calendar:
+  weekend_days: [saturday, sunday]
+  ref: "Example Leave Policy §1"
+
+leave:
+  approval: "Apply through the HR portal; your manager approves in advance."
+  approval_ref: "Example Leave Policy §2"
+  blocked_statuses: [notice_period]
+  blocked_types: [CL, SL, EL, PL]
+  blocked_ref: "Example Leave Policy §3"
+  unapproved_absence: "Unapproved absence is treated as leave without pay."
+  unapproved_ref: "Example Leave Policy §4"
+  maternity:
+    code: ML
+    min_confirmed_service_days: 120
+    weeks_first_two_children: 20
+    weeks_third_child_onwards: 10
+    adoption_weeks: 10
+    adoption_max_child_age_months: 6
+    max_weeks_before_delivery: 6
+    document: "Medical certificate"
+    ref: "Example Leave Policy §5"
+  paternity:
+    code: PTL
+    days_per_event: 4
+    max_children: 2
+    window_weeks: 6
+    document: "Supporting documentation"
+    ref: "Example Leave Policy §6"
+
+wfh:
+  max_days_per_month: 6
+  max_days_per_week: 3
+  min_experience_months: 18
+  experience_exception: "Exceptions are at management's discretion."
+  blocked_statuses: [notice_period]
+  excess_handling: "Extra WFH days are deducted from leave or treated as unpaid."
+  exception_approval: "Exceptions need manager and HR approval."
+  ref: "Example WFH Policy §1"
+  blocked_ref: "Example Leave Policy §3"
+
+staff_loan:
+  min_service_months: 18
+  gap_months_after_repayment: 9
+  max_loans_per_financial_year: 1
+  financial_year_start_month: 4
+  max_annual_ctc_inr: 1500000
+  max_amount_inr: 150000
+  max_emi_months: 10
+  purposes: ["Example purpose A", "Example purpose B"]
+  process: "Apply through HR."
+  ref: "Example Loan Policy §1"
+
+certification:
+  min_service_months: 6
+  claim_window_days: 30
+  excluded_examples: ["Example Fundamentals Certificate"]
+  service_commitment_months: 9
+  process: "Get manager approval, then claim through HR."
+  ref: "Example Certification Policy §1"

@@ -1,0 +1,110 @@
+# FICTIONAL employees for the mock HR system (no real people). Safe to publish.
+# Leave history `days` are working days (weekends and Chennai/Karnataka 2026 holidays excluded).
+# `used` balances are derived from approved history; pending requests reduce availability.
+# `annual_ctc_inr` and `loans` are fictional and used only by the staff-loan rules.
+employees:
+  - code: EMP0500
+    email: meena.j@example.com
+    name: Meena J
+    location: chennai
+    department: Human Resources
+    designation: HR Business Partner
+    joined: 2018-07-02
+    confirmed: 2019-01-02
+    prior_experience_months: 60
+    role: hr
+    annual_ctc_inr: 1800000
+
+  - code: EMP0900
+    email: rohan.k@example.com
+    name: Rohan K
+    location: karnataka
+    department: Engineering
+    designation: Engineering Manager
+    joined: 2019-03-04
+    confirmed: 2019-09-04
+    prior_experience_months: 72
+    role: manager
+    annual_ctc_inr: 3200000
+    children_on_record: 1
+    carried_forward: {EL: 8}
+    leave:
+      - {type: EL, start: 2026-03-23, end: 2026-03-27, days: 5, status: approved, reason: Family trip}
+      - {type: CL, start: 2026-07-10, end: 2026-07-10, days: 1, status: approved}
+
+  - code: EMP1001
+    email: priya.r@example.com
+    name: Priya R
+    location: chennai
+    department: Engineering
+    designation: Senior Software Engineer
+    joined: 2022-06-13
+    confirmed: 2022-12-13
+    prior_experience_months: 24
+    annual_ctc_inr: 1500000
+    loans:
+      - {amount: 100000, disbursed: 2025-06-10, closed: 2026-02-28}
+    manager: EMP0900
+    carried_forward: {EL: 8}
+    leave:
+      - {type: CL, start: 2026-02-16, end: 2026-02-17, days: 2, status: approved}
+      - {type: EL, start: 2026-05-11, end: 2026-05-15, days: 5, status: approved, reason: Vacation}
+      - {type: SL, start: 2026-06-03, end: 2026-06-03, days: 1, status: approved}
+      - {type: CL, start: 2026-10-26, end: 2026-10-27, days: 2, status: pending, reason: Personal}
+    wfh: [2026-09-01, 2026-09-03, 2026-09-08, 2026-09-10, 2026-09-15, 2026-09-17, 2026-09-22, 2026-09-24, 2026-10-01]
+
+  - code: EMP1100
+    email: vikram.n@example.com
+    name: Vikram N
+    location: chennai
+    department: Engineering
+    designation: Software Engineer
+    joined: 2025-03-17
+    confirmed: 2025-09-17
+    prior_experience_months: 0
+    annual_ctc_inr: 800000
+    loans:
+      - {amount: 50000, disbursed: 2026-07-01, outstanding: 37500}
+    manager: EMP0900
+    carried_forward: {PL: 7}   # legacy Privilege Leave retained after PL->EL conversion
+    leave:
+      - {type: SL, start: 2026-04-06, end: 2026-04-08, days: 3, status: approved}
+
+  - code: EMP1205
+    email: kavya.s@example.com
+    name: Kavya S
+    location: chennai
+    department: Engineering
+    designation: Associate Software Engineer
+    joined: 2026-08-03
+    confirmed: null            # on probation
+    prior_experience_months: 0
+    annual_ctc_inr: 600000
+    manager: EMP0900
+
+  - code: EMP0750
+    email: rahul.p@example.com
+    name: Rahul P
+    location: chennai
+    department: Quality Engineering
+    designation: QA Lead
+    joined: 2021-01-11
+    confirmed: 2021-07-11
+    prior_experience_months: 36
+    annual_ctc_inr: 1400000
+    status: notice_period
+    manager: EMP0900
+    carried_forward: {EL: 8}
+    leave:
+      - {type: CL, start: 2026-07-06, end: 2026-07-08, days: 3, status: approved}
+
+  - code: EMP3001
+    email: emily.carter@example.com
+    name: Emily Carter
+    location: usa
+    department: Delivery
+    designation: Delivery Lead
+    joined: 2023-04-03
+    confirmed: 2023-07-03
+    prior_experience_months: 96
+    leave_policy_applicable: false   # India leave policy does not cover the US entity; no balances seeded
