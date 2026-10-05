@@ -70,14 +70,19 @@ class SeedSummary:
     leave_types_source: str
 
 
-def load_leave_types() -> tuple[list[dict[str, Any]], str]:
-    path = PRIVATE_LEAVE_TYPES if PRIVATE_LEAVE_TYPES.exists() else EXAMPLE_LEAVE_TYPES
+def load_leave_types(use_private: bool = True) -> tuple[list[dict[str, Any]], str]:
+    """Leave types from the private policy file when present (and allowed), else the example."""
+    path = (
+        PRIVATE_LEAVE_TYPES if use_private and PRIVATE_LEAVE_TYPES.exists() else EXAMPLE_LEAVE_TYPES
+    )
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     return data["leave_types"], ("private" if path == PRIVATE_LEAVE_TYPES else "example")
 
 
-async def seed(session: AsyncSession, as_of: date) -> SeedSummary:
-    leave_type_rows, source = load_leave_types()
+async def seed(session: AsyncSession, as_of: date, use_private: bool = True) -> SeedSummary:
+    """Rebuild the mock HR tables. Tests pass use_private=False so results never depend on
+    whether the private leave-types file exists on the machine (CI has only the example)."""
+    leave_type_rows, source = load_leave_types(use_private)
     employees_data = yaml.safe_load((SEED_DIR / "employees.yaml").read_text(encoding="utf-8"))
     year = as_of.year
 

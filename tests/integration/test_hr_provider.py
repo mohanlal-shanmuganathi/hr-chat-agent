@@ -23,7 +23,7 @@ async def test_seed_is_idempotent(
     from app.hr.seed import seed
 
     async with session_factory() as s:
-        again = await seed(s, date(2026, 10, 3))
+        again = await seed(s, date(2026, 10, 3), use_private=False)
     assert again == seeded
     assert seeded.employees == 7
 
@@ -58,16 +58,16 @@ async def test_balances_account_for_carry_forward_usage_and_pending(
     assert priya_id
     balances = {b.leave_type_code: b for b in await provider.get_leave_balances(priya_id, 2026)}
 
-    # Credits use the leave-types file in effect (private policy or the example; both give these).
+    # Seeded from the example leave types: CL 8/yr (2 per quarter), EL 16/yr (4 per quarter).
     cl = balances["CL"]
     assert (cl.credited, cl.used, cl.pending, cl.available) == (
-        Decimal("6.0"),
+        Decimal("8.0"),
         Decimal("2.0"),
         Decimal("2.0"),
-        Decimal("2.0"),
+        Decimal("4.0"),
     )
     el = balances["EL"]
-    assert el.available == Decimal("15.0")  # 8 carried + 12 credited - 5 used
+    assert el.available == Decimal("19.0")  # 8 carried + 16 credited - 5 used
 
 
 async def test_new_joiner_credited_from_joining_quarter(
@@ -77,7 +77,7 @@ async def test_new_joiner_credited_from_joining_quarter(
     kavya_id = await provider.find_employee_id_by_email("kavya.s@example.com")
     assert kavya_id
     balances = {b.leave_type_code: b for b in await provider.get_leave_balances(kavya_id, 2026)}
-    assert balances["CL"].credited == Decimal("3.0")  # Q3 + Q4
+    assert balances["CL"].credited == Decimal("4.0")  # Q3 + Q4, 2 each
 
 
 async def test_employee_outside_leave_policy_has_no_balances(

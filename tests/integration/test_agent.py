@@ -73,7 +73,7 @@ async def test_answers_with_tool_data_and_system_prompt(deps: ToolDeps) -> None:
     assert "Priya R" in str(system.content) and "03 Oct 2026" in str(system.content)
     payload = tool_payloads(model.prompts[1])[0]
     cl = next(b for b in payload["data"]["balances"] if "(CL)" in b["type"])
-    assert cl["available"] == 2.0
+    assert cl["available"] == 4.0
     assert result.output_tokens == 5
 
 

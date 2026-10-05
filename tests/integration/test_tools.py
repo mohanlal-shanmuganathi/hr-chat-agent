@@ -36,7 +36,7 @@ async def test_balances_and_missing_records(deps: ToolDeps) -> None:
     priya = await run(deps, await ctx_for(deps, "priya.r@example.com"), "get_my_leave_balances")
     assert priya.data
     cl = next(b for b in priya.data["balances"] if "(CL)" in b["type"])
-    assert (cl["available"], cl["pending_approval"]) == (2.0, 2.0)
+    assert (cl["available"], cl["pending_approval"]) == (4.0, 2.0)
 
     emily = await run(
         deps, await ctx_for(deps, "emily.carter@example.com"), "get_my_leave_balances"
