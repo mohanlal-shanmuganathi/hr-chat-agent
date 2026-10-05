@@ -3,7 +3,7 @@
 from datetime import date
 from pathlib import Path
 
-SYSTEM_PROMPT_VERSION = "system_v3"
+SYSTEM_PROMPT_VERSION = "system_v4"
 _DIR = Path(__file__).parent
 
 
@@ -14,6 +14,7 @@ def render_system_prompt(
     employee_location: str,
     today: date,
     hr_email: str,
+    policy_scope: str,
 ) -> str:
     template = (_DIR / f"{SYSTEM_PROMPT_VERSION}.md").read_text(encoding="utf-8")
     return template.format(
@@ -23,4 +24,5 @@ def render_system_prompt(
         today=today.strftime("%d %b %Y"),
         weekday=today.strftime("%A"),
         hr_email=hr_email,
+        policy_scope=policy_scope,
     )

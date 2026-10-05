@@ -51,6 +51,8 @@ from app.agent.guardrails import GuardKind, check_input
 from app.agent.llm import CONFIG_ERROR_CODES, NO_RETRY_CODES, classify_llm_error
 from app.agent.prompts import render_system_prompt
 from app.core.logging import get_logger
+from app.domain.policy_scope import PolicyScope
+from app.domain.rules.location import parse_location
 from app.tools.base import ToolContext, ToolDeps, ToolSpec, execute_tool
 
 log = get_logger(__name__)
@@ -123,6 +125,7 @@ class AgentSettings(TypedDict):
     tool_timeout_s: float
     model_retry_delay_s: NotRequired[float]  # pause before retrying a failed model call (1.5)
     scope_check: NotRequired[bool]  # run the scope_check node (False if absent)
+    policy_scope: NotRequired[PolicyScope]  # which policies cover which locations (none if absent)
 
 
 # --------------------------------------------------------------------------- tool schemas
@@ -302,13 +305,16 @@ def build_agent_graph(
 
     async def agent(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
         c = _configurable(config)
+        location = str(c.get("employee_location", "unknown"))
+        scope = settings.get("policy_scope") or PolicyScope()
         system = SystemMessage(
             content=render_system_prompt(
                 company=settings["company"],
                 employee_name=str(c.get("employee_name", "the employee")),
-                employee_location=str(c.get("employee_location", "unknown")),
+                employee_location=location,
                 today=date.fromisoformat(str(c["today"])),
                 hr_email=settings["hr_email"],
+                policy_scope=scope.describe_for(parse_location(location)),
             )
         )
         history = trim_messages(

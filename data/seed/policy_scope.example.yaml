@@ -1,0 +1,6 @@
+# EXAMPLE ONLY: which locations each policy covers. The real file lives at
+#   data/private_policies/config/policy_scope.yaml   (git-ignored)
+# and is used whenever it exists. `match` is compared, as whole words, with the document's
+# normalised title; a policy that matches no entry applies to every location.
+policies:
+  - {name: Leave Policy, match: leave policy, applies_to: [chennai, karnataka]}

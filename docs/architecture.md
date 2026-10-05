@@ -126,7 +126,9 @@ Why one agent and not several: see [ADR-002](adr/0002-single-agent-with-determin
 2. **Parse:** PyMuPDF extracts text with page numbers and removes repeated headers and footers.
 3. **Metadata:** title, version and effective date come from each PDF's "Document and Version
    History" table (or revision block). The location (Chennai, Karnataka, USA) comes from the
-   title.
+   title. Policies that cover only some locations (e.g. the leave policy, written for the India
+   entity) get an `applies_to` list from `policy_scope.yaml` (private, with a fictional example
+   in `data/seed/`).
 4. **Versioning:** documents are grouped by normalised policy name, and the newest date (then
    version) is `current`. Older versions are kept as `superseded` with no chunks, so they can
    never be retrieved.
@@ -136,6 +138,8 @@ Why one agent and not several: see [ADR-002](adr/0002-single-agent-with-determin
 7. **Embeddings** are computed locally with fastembed (`bge-small-en-v1.5`, 384-d).
 8. **Retrieval** fuses Postgres full-text search (OR-query, `ts_rank_cd`) and pgvector cosine
    with reciprocal rank fusion, filtered to current documents and the employee's location.
+   Policies scoped to other locations stay searchable, but each passage says whether it
+   `applies_to_you`; the system prompt also names the policies that do not cover the employee.
 9. **Re-indexing** is keyed on the content hash plus an index signature (embedding model and
    chunker version).
 
@@ -144,7 +148,7 @@ Why one agent and not several: see [ADR-002](adr/0002-single-agent-with-determin
 | Table | Purpose |
 |---|---|
 | `employees`, `leave_types`, `leave_balances`, `leave_requests`, `holidays`, `wfh_days`, `staff_loans`, `hr_tickets` | Mock HR system of record (fictional people) |
-| `documents`, `document_chunks` | Policy registry (version, status, location) and chunks (`tsvector`, `vector(384)`) |
+| `documents`, `document_chunks` | Policy registry (version, status, location, `applies_to`) and chunks (`tsvector`, `vector(384)`) |
 | `audit_log` | Every tool call, approval and login: who, what, outcome, latency; free text redacted |
 | `checkpoint*` (LangGraph) | Conversation state per `employee:thread` |
 
@@ -199,9 +203,9 @@ approval).
 
 ## 11. Evaluation
 
-- **Tests:** about 100 unit and integration tests run in CI against Postgres, using a scripted
+- **Tests:** about 130 unit and integration tests run in CI against Postgres, using a scripted
   model for agent behaviour.
-- **Eval suite** (`evals/`): 32 public cases plus private cases that assert policy facts. They are
+- **Eval suite** (`evals/`): 33 public cases plus private cases that assert policy facts. They are
   scored by deterministic checks: tools chosen, arguments, answer content, citations, guardrail,
   confirmation status and tool-call budget. An optional LLM judge checks groundedness. Results go
   to [`eval-results.md`](eval-results.md).

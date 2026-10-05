@@ -29,6 +29,7 @@ class EmployeeProfile(_Frozen):
     manager_name: str | None = None
     children_on_record: int
     annual_ctc_inr: int | None = None
+    leave_policy_applicable: bool = True
 
     @computed_field  # type: ignore[prop-decorator]
     @property

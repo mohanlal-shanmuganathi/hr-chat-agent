@@ -28,7 +28,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 EMBEDDING_DIM = 384  # BAAI/bge-small-en-v1.5; changing it requires a migration + re-index
@@ -95,6 +95,8 @@ class Employee(Base):
     manager_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("employees.id"))
     children_on_record: Mapped[int] = mapped_column(Integer, default=0)
     annual_ctc_inr: Mapped[int | None] = mapped_column(Integer)  # mock; used by loan rules only
+    # False when the company leave policy does not cover the employee's entity (e.g. the USA)
+    leave_policy_applicable: Mapped[bool] = mapped_column(default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     manager: Mapped["Employee | None"] = relationship(remote_side=[id])
@@ -200,6 +202,8 @@ class Document(Base):
     )
     superseded_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("documents.id"))
     location: Mapped[Location | None] = mapped_column(_enum(Location, "location"))
+    # Locations the policy covers (from the policy-scope config); NULL = every location
+    applies_to: Mapped[list[str] | None] = mapped_column(ARRAY(String(16)))
     page_count: Mapped[int] = mapped_column(Integer)
     needs_review: Mapped[bool] = mapped_column(default=False)  # version date not found in text
     # "<embedding model>+chunker-<n>": a change to either forces re-indexing

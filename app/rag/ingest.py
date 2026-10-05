@@ -20,6 +20,7 @@ from app.config import Settings, get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.models import Document, DocumentChunk, DocumentStatus, Holiday
 from app.db.session import create_engine, create_session_factory
+from app.domain.policy_scope import PolicyScope, load_policy_scope
 from app.rag.chunking import CHUNKER_VERSION, chunk_document
 from app.rag.embeddings import Embedder, create_embedder
 from app.rag.holidays import parse_holiday_rows
@@ -38,6 +39,7 @@ class ReportRow:
     effective_date: str | None
     status: str
     location: str | None
+    applies_to: list[str] | None
     chunks: int
     holidays: int
     action: str  # indexed | unchanged | registry-only
@@ -59,7 +61,8 @@ class IngestReport:
             flag = "  (check version date)" if r.needs_review else ""
             lines.append(
                 f"{r.filename[:44]:44} {(r.version or '-'):5} {(r.effective_date or '-'):10} "
-                f"{r.status:10} {(r.location or 'all'):9} {r.chunks:>4} {r.holidays:>4} "
+                f"{r.status:10} {(r.location or '+'.join(r.applies_to or []) or 'all'):9} "
+                f"{r.chunks:>4} {r.holidays:>4} "
                 f"{r.action}{flag}"
             )
         for name in self.removed:
@@ -142,7 +145,9 @@ async def ingest(
     sessions: async_sessionmaker[AsyncSession],
     embedder: Embedder,
     settings: Settings,
+    scope: PolicyScope | None = None,
 ) -> IngestReport:
+    scope = scope or load_policy_scope(Path(settings.policy_dir))
     items: dict[str, _Item] = {}
     for src in source.iter_documents():
         try:
@@ -180,6 +185,10 @@ async def ingest(
             doc.version = meta.version
             doc.effective_date = meta.effective_date
             doc.location = meta.location
+            # Location-specific documents (holiday lists) are scoped by `location` already.
+            covered = None if meta.location else scope.locations_for(meta.policy_key)
+            applies_to = [loc.value for loc in covered] if covered else None
+            doc.applies_to = applies_to
             doc.page_count = item.parsed.page_count
             doc.needs_review = meta.needs_review
             doc.status = DocumentStatus.CURRENT if is_current else DocumentStatus.SUPERSEDED
@@ -217,6 +226,7 @@ async def ingest(
                 effective_date=meta.effective_date.isoformat() if meta.effective_date else None,
                 status=("current" if is_current else "superseded"),
                 location=meta.location.value if meta.location else None,
+                applies_to=applies_to,
                 chunks=int(chunk_count or 0),
                 holidays=holidays,
                 action=action,

@@ -121,6 +121,7 @@ async def seed(session: AsyncSession, as_of: date, use_private: bool = True) -> 
             role=Role(e.get("role", "employee")),
             children_on_record=e.get("children_on_record", 0),
             annual_ctc_inr=e.get("annual_ctc_inr"),
+            leave_policy_applicable=e.get("leave_policy_applicable", True),
         )
         by_code[emp.employee_code] = emp
     session.add_all(by_code.values())
@@ -147,7 +148,7 @@ async def seed(session: AsyncSession, as_of: date, use_private: bool = True) -> 
             session.add(WfhDay(employee_id=emp.id, wfh_date=w))
             n_wfh += 1
 
-        if not e.get("leave_policy_applicable", True):
+        if not emp.leave_policy_applicable:
             continue
 
         used: dict[str, Decimal] = {}

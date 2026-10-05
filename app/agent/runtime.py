@@ -23,6 +23,7 @@ from app.agent.service import ChatService
 from app.config import Settings
 from app.core.logging import get_logger
 from app.db.session import create_engine, create_session_factory
+from app.domain.policy_scope import load_policy_scope
 from app.domain.rules.config import load_rules
 from app.hr.db_provider import DbHRDataProvider
 from app.observability.audit import DbAuditSink
@@ -56,6 +57,7 @@ def agent_settings(settings: Settings) -> AgentSettings:
         history_messages=settings.agent_history_messages,
         tool_timeout_s=settings.tool_timeout_s,
         scope_check=settings.scope_check_enabled,
+        policy_scope=load_policy_scope(Path(settings.policy_dir)),
     )
 
 
