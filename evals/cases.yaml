@@ -100,6 +100,16 @@ cases:
       tools_all: [get_my_leave_history]
       answer_contains_any: ["pending"]
 
+  - id: D05  # USA employee: the India leave policy must not be quoted as her entitlement
+    category: personal_data
+    employee: emily.carter@example.com
+    turns: ["How many casual leaves am I entitled to per year?"]
+    expect:
+      tools_any: [search_hr_policies, get_my_leave_balances, get_my_profile]
+      answer_contains_all: ["hr@ideas2it.com"]
+      answer_contains_any: ["does not apply", "doesn't apply", "does not cover", "doesn't cover",
+                            "not covered", "not apply"]
+
   # ------------------------------------------------------------------ calculations
   - id: C01
     category: calculation

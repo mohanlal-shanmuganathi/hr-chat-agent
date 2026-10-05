@@ -36,13 +36,39 @@ async def test_balances_and_missing_records(deps: ToolDeps) -> None:
     priya = await run(deps, await ctx_for(deps, "priya.r@example.com"), "get_my_leave_balances")
     assert priya.data
     cl = next(b for b in priya.data["balances"] if "(CL)" in b["type"])
-    assert (cl["available"], cl["pending_approval"]) == (2.0, 2.0)
+    assert (cl["available"], cl["pending_approval"]) == (4.0, 2.0)
 
     emily = await run(
         deps, await ctx_for(deps, "emily.carter@example.com"), "get_my_leave_balances"
     )
     assert emily.data and emily.data["balances"] == []
+    assert emily.data["leave_policy_applies"] is False
+    assert "does not cover employees located in USA" in emily.data["note"]
     assert "hr@example.com" in emily.data["note"]
+
+
+async def test_leave_tools_say_the_leave_policy_does_not_apply(deps: ToolDeps) -> None:
+    emily = await ctx_for(deps, "emily.carter@example.com")
+    dates = {"start": "2026-10-20", "end": "2026-10-21"}
+
+    profile = await run(deps, emily, "get_my_profile")
+    assert profile.data and profile.data["leave_policy_applies"] is False
+
+    days = await run(deps, emily, "calculate_leave_days", **dates)
+    assert days.data and days.data["leave_policy_applies"] is False
+    assert "leave_days_needed" not in days.data
+
+    check = await run(deps, emily, "check_leave_eligibility", leave_type="CL", **dates)
+    assert check.data and check.data["verdict"] == "needs_hr"
+    assert check.data["findings"][0]["code"] == "leave_policy_not_applicable"
+    assert check.data["hr_contact"] == "hr@example.com"
+
+    submit = await run(deps, emily, "submit_leave_request", leave_type="CL", **dates)
+    assert submit.error and submit.error["code"] == "not_allowed"
+    assert "leave policy does not cover your location" in submit.error["message"]
+
+    priya = await run(deps, await ctx_for(deps, "priya.r@example.com"), "get_my_profile")
+    assert priya.data and priya.data["leave_policy_applies"] is True
 
 
 async def test_holidays_default_to_the_profile_location(deps: ToolDeps) -> None:

@@ -4,6 +4,8 @@ Full-text catches exact terms ("EL", "paternity", "iAssistant"); vectors catch p
 ("leave when my baby is born"). Only chunks of *current* documents are searchable (superseded
 versions have no chunks). A location filter keeps location-specific documents (e.g. a Karnataka
 holiday list) out of answers for other locations; documents without a location apply to everyone.
+Documents scoped to some locations (`applies_to`, e.g. a leave policy for the India entity) stay
+searchable for everyone; the search tool marks whether each passage applies to the employee.
 """
 
 import asyncio
@@ -58,7 +60,7 @@ _HYBRID_SQL = text(
         GROUP BY id
     )
     SELECT c.id AS chunk_id, d.id AS document_id, d.title, d.version, d.effective_date,
-           d.location, c.section, c.page_start, c.page_end, c.content,
+           d.location, d.applies_to, c.section, c.page_start, c.page_end, c.content,
            f.score, f.keyword_hit
     FROM fused f
     JOIN document_chunks c ON c.id = f.id
@@ -83,6 +85,7 @@ class RetrievedChunk:
     content: str
     score: float
     keyword_hit: bool
+    applies_to: list[Location] | None = None  # locations the policy covers; None = all
 
     @property
     def citation(self) -> str:
@@ -140,6 +143,7 @@ class PolicyRetriever:
                 content=r["content"],
                 score=float(r["score"]),
                 keyword_hit=bool(r["keyword_hit"]),
+                applies_to=[Location(v) for v in r["applies_to"]] if r["applies_to"] else None,
             )
             for r in rows
         ]

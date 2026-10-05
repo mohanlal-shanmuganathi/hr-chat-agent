@@ -208,6 +208,15 @@ def test_no_balances_on_record_routes_to_hr(rules: RulesConfig) -> None:
     assert res.verdict is Verdict.NEEDS_HR
 
 
+def test_leave_policy_not_applicable_routes_to_hr_for_any_type(rules: RulesConfig) -> None:
+    us = profile(location=Location.USA, leave_policy_applicable=False)
+    for code in ("CL", "ML", "XYZ"):
+        res = check(rules, us, leave_type_code=code, start=date(2030, 3, 5), end=date(2030, 3, 5))
+        assert res.result.verdict is Verdict.NEEDS_HR
+        assert [f.code for f in res.result.findings] == ["leave_policy_not_applicable"]
+        assert res.working_days is None
+
+
 def test_maternity_rules(rules: RulesConfig) -> None:
     m = rules.leave.maternity
     full_term = date(2030, 4, 1) + timedelta(days=m.weeks_first_two_children * 7 - 1)

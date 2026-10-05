@@ -13,7 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.agent.graph import AgentSettings, build_agent_graph, plainly_in_scope, tool_schema
 from app.agent.service import ChatError, ChatService, EmployeeIdentity
-from app.db.models import HrTicket, LeaveRequest
+from app.db.models import HrTicket, LeaveRequest, Location
+from app.domain.policy_scope import PolicyScope, PolicyScopeRule
 from app.tools.base import ToolDeps
 from app.tools.hr_tools import HR_TOOLS
 from tests.fakes import ScriptedChatModel, call, fail, say, scope
@@ -71,9 +72,10 @@ async def test_answers_with_tool_data_and_system_prompt(deps: ToolDeps) -> None:
     system = model.prompts[0][0]
     assert isinstance(system, SystemMessage)
     assert "Priya R" in str(system.content) and "03 Oct 2026" in str(system.content)
+    assert "All company policies in the knowledge base apply" in str(system.content)
     payload = tool_payloads(model.prompts[1])[0]
     cl = next(b for b in payload["data"]["balances"] if "(CL)" in b["type"])
-    assert cl["available"] == 2.0
+    assert cl["available"] == 4.0
     assert result.output_tokens == 5
 
 
@@ -406,3 +408,26 @@ async def test_quota_errors_are_not_retried(deps: ToolDeps) -> None:
     result = await service.send(await who(deps, "priya.r@example.com"), "t1", "hi", TODAY)
     assert result.fallback == "llm_quota_exhausted" and "daily" in (result.answer or "")
     assert len(model.prompts) == 1
+
+
+async def test_system_prompt_names_policies_that_do_not_cover_the_employee(
+    deps: ToolDeps,
+) -> None:
+    india_only = PolicyScope(
+        policies=[
+            PolicyScopeRule(
+                name="Leave Policy",
+                match="leave policy",
+                applies_to=[Location.CHENNAI, Location.KARNATAKA],
+            )
+        ]
+    )
+    model = ScriptedChatModel(script=[say("Please check with HR.")])
+    service = make_service(model, deps, AgentSettings(**SETTINGS, policy_scope=india_only))
+    emily = await who(deps, "emily.carter@example.com")
+
+    await service.send(emily, "t1", "How many casual leaves do I get per year?", TODAY)
+
+    system = str(model.prompts[0][0].content)
+    assert "Policy scope for their location (USA): the Leave Policy covers Chennai" in system
+    assert "applies_to_you: false" in system

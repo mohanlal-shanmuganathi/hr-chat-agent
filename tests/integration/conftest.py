@@ -50,7 +50,7 @@ async def session_factory(database_url: str) -> AsyncIterator[async_sessionmaker
 @pytest.fixture
 async def seeded(session_factory: async_sessionmaker[AsyncSession]) -> SeedSummary:
     async with session_factory() as s:
-        return await seed(s, SEED_AS_OF)
+        return await seed(s, SEED_AS_OF, use_private=False)
 
 
 @pytest.fixture

@@ -57,10 +57,12 @@ results leave the boundary, to Gemini. Details: [docs/architecture.md](docs/arch
   reviewed replies routing to people; prompt injection is refused.
 - **Location-aware.** Holiday answers use the employee's location on record and mention
   the other locations (Chennai / Karnataka / USA); a named location is used instead.
+  Policies that cover only some locations (e.g. the India leave policy) are flagged as not
+  applying to employees elsewhere, and the leave tools tell a US employee to ask HR.
 - **Explainable.** Each turn reports the tools used with their arguments, the verdict findings
   with policy references, citations, tokens and prompt version. An audit log records every tool
   call and approval.
-- **Tested and evaluated.** 123 unit and integration tests in CI, plus a 32-case public evaluation
+- **Tested and evaluated.** 130 unit and integration tests in CI, plus a 33-case public evaluation
   suite (and private cases for policy facts) with deterministic scoring and an optional LLM judge.
 
 ## Confidential data
@@ -70,7 +72,7 @@ The repository is public; the policy documents are not.
 - Put the original policy PDFs in `data/private_policies/` (git-ignored). They are mounted
   **read-only** into the container and never baked into the image.
 - Rule values transcribed from the policies live in `data/private_policies/config/`
-  (`leave_types.yaml`, `rules.yaml`). `data/seed/*.example.yaml` hold **fictional** placeholder
+  (`leave_types.yaml`, `rules.yaml`, `policy_scope.yaml`). `data/seed/*.example.yaml` hold **fictional** placeholder
   values that are used only when the private files are absent.
 - Eval cases that assert policy facts live in `evals/private/` (git-ignored).
 - CI fails if anything in those folders, or a `.env`, is ever committed.
@@ -107,7 +109,8 @@ Copy the policy PDFs into `data/private_policies/`, for example
 
 - The folder is git-ignored and mounted read-only into the container; nothing in it can be
   committed (CI also checks).
-- If you were given the private rule files (`leave_types.yaml`, `rules.yaml`), put them in
+- If you were given the private rule files (`leave_types.yaml`, `rules.yaml`,
+  `policy_scope.yaml`), put them in
   `data/private_policies/config/`. Without them the eligibility rules use the **fictional**
   values in `data/seed/` (answers quoted from the policies still come from the real PDFs).
 

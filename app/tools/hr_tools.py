@@ -13,6 +13,7 @@ from pydantic import Field, model_validator
 
 from app.db.models import Location
 from app.domain.hr import EmployeeProfile
+from app.domain.policy_scope import covered_label
 from app.domain.rules.benefits import (
     check_certification_reimbursement,
     check_staff_loan_eligibility,
@@ -37,6 +38,15 @@ def _idempotency_key(*parts: object) -> str:
 
 async def _profile(ctx: ToolContext, deps: ToolDeps) -> EmployeeProfile:
     return await deps.hr.get_profile(ctx.employee_id)
+
+
+def _leave_policy_not_applicable(profile: EmployeeProfile, deps: ToolDeps) -> str:
+    return (
+        "The company leave policy does not cover employees located in "
+        f"{DISPLAY[profile.location]}, so it gives this employee no leave balances, entitlements "
+        "or leave rules. Do not quote its numbers as theirs; refer them to HR at "
+        f"{deps.hr_contact_email} for the leave rules that apply to them."
+    )
 
 
 class _DateRange(ToolInput):
@@ -70,30 +80,44 @@ class SearchPoliciesInput(ToolInput):
 async def search_hr_policies(
     args: SearchPoliciesInput, ctx: ToolContext, deps: ToolDeps
 ) -> dict[str, Any]:
+    profile = await _profile(ctx, deps)
     location: Location | None
     if args.location:
         location = parse_location(args.location)
         if location is None:
             raise ToolError("unknown_location", f"Unknown location '{args.location}'.")
     else:
-        location = (await _profile(ctx, deps)).location
+        location = profile.location
     hits = await deps.retriever.search(args.query, location=location, top_k=deps.search_top_k)
-    return {
-        "passages": [
+    passages = []
+    for h in hits:
+        covered = [h.location] if h.location else h.applies_to
+        passages.append(
             {
                 "citation": h.citation,
                 "document": h.title,
                 "version": h.version,
                 "effective_date": h.effective_date.isoformat() if h.effective_date else None,
-                "applies_to": DISPLAY[h.location] if h.location else "all locations",
+                "applies_to": covered_label(covered) if covered else "all locations",
+                "applies_to_you": not covered or profile.location in covered,
                 "text": h.content[:_MAX_PASSAGE_CHARS],
             }
-            for h in hits
-        ],
+        )
+    out: dict[str, Any] = {
+        "passages": passages,
         "note": UNTRUSTED_NOTE,
         "if_not_found": f"If these passages do not answer the question, say so and refer the "
         f"employee to HR at {deps.hr_contact_email}.",
     }
+    if any(not p["applies_to_you"] for p in passages):
+        out["applicability_note"] = (
+            "Passages with applies_to_you=false come from policies that do not cover the "
+            f"employee's location ({DISPLAY[profile.location]}). Do not present their "
+            "entitlements, quotas or rules as the employee's own: say the policy does not "
+            f"cover their location and refer them to HR at {deps.hr_contact_email}. Only if "
+            "they asked about that other location may you describe it, labelled as such."
+        )
+    return out
 
 
 # --------------------------------------------------------------------------- profile / balances
@@ -118,6 +142,7 @@ async def get_my_profile(args: NoInput, ctx: ToolContext, deps: ToolDeps) -> dic
         "employment_status": p.employment_status.value,
         "manager": p.manager_name,
         "total_experience": f"{months // 12} years {months % 12} months",
+        "leave_policy_applies": p.leave_policy_applicable,
     }
 
 
@@ -129,6 +154,14 @@ async def get_my_leave_balances(
     args: YearInput, ctx: ToolContext, deps: ToolDeps
 ) -> dict[str, Any]:
     year = args.year or ctx.today.year
+    profile = await _profile(ctx, deps)
+    if not profile.leave_policy_applicable:
+        return {
+            "year": year,
+            "balances": [],
+            "leave_policy_applies": False,
+            "note": _leave_policy_not_applicable(profile, deps),
+        }
     balances = await deps.hr.get_leave_balances(ctx.employee_id, year)
     if not balances:
         return {
@@ -224,6 +257,8 @@ async def calculate_leave_days(
     args: _DateRange, ctx: ToolContext, deps: ToolDeps
 ) -> dict[str, Any]:
     profile = await _profile(ctx, deps)
+    if not profile.leave_policy_applicable:
+        return {"leave_policy_applies": False, "note": _leave_policy_not_applicable(profile, deps)}
     holidays = await deps.hr.list_holidays(profile.location, args.start, args.end)
     try:
         wd = count_working_days(args.start, args.end, holidays, deps.rules.calendar, args.half_day)
@@ -366,8 +401,11 @@ async def submit_leave_request(
         # Never trust that the model checked first: re-run the rules server-side.
         check = await _leave_check(args, ctx, deps)
         if check.result.verdict is not Verdict.ELIGIBLE or check.working_days is None:
-            reasons = "; ".join(f.message for f in check.result.findings if f.blocking) or (
-                f"verdict is {check.result.verdict.value}"
+            findings = check.result.findings
+            reasons = "; ".join(f.message for f in findings if f.blocking) or (
+                "; ".join(f.message for f in findings)
+                if check.result.verdict is Verdict.NEEDS_HR and findings
+                else f"verdict is {check.result.verdict.value}"
             )
             raise ToolError("not_allowed", f"Request not submitted: {reasons}")
         days = (

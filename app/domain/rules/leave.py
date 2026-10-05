@@ -51,6 +51,22 @@ def check_leave_eligibility(
     today: date,
     existing_requests: list[LeaveRequestView] | None = None,
 ) -> LeaveCheck:
+    if not profile.leave_policy_applicable:
+        return LeaveCheck(
+            EligibilityResult.from_findings(
+                [
+                    Finding(
+                        code="leave_policy_not_applicable",
+                        message="The company leave policy does not cover your location "
+                        "on record, so its leave types, entitlements and rules do not "
+                        "apply to you. HR can tell you which leave rules do.",
+                    )
+                ],
+                needs_hr=True,
+            ),
+            None,
+        )
+
     code = request.leave_type_code.upper()
     types = {t.code: t for t in leave_types}
     leave_type = types.get(code)
